@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"log"
 
 	"github.com/wailsapp/wails/v2"
@@ -25,20 +26,19 @@ func main() {
 	// Create application with options
 	// 使用选项创建应用
 	err := wails.Run(&options.App{
-		Title:             "MirCat",
-		Width:             900,
-		Height:            600,
-		MinWidth:          900,
-		MinHeight:         600,
-		MaxWidth:          1200,
-		MaxHeight:         800,
+		Title:     "MirCat",
+		Width:     900,
+		Height:    600,
+		MinWidth:  900,
+		MinHeight: 600,
+		//MaxWidth:          1200,
+		//MaxHeight:         800,
 		DisableResize:     false,
 		Fullscreen:        false,
 		Frameless:         false,
 		StartHidden:       false,
 		HideWindowOnClose: false,
-		RGBA:              &options.RGBA{R: 255, G: 255, B: 255, A: 0},
-		Assets:            assets,
+		BackgroundColour:  &options.RGBA{R: 255, G: 255, B: 255, A: 0},
 		Menu:              nil,
 		Logger:            nil,
 		LogLevel:          logger.DEBUG,
@@ -47,6 +47,11 @@ func main() {
 		OnBeforeClose:     app.beforeClose,
 		OnShutdown:        app.shutdown,
 		WindowStartState:  options.Normal,
+		AssetServer: &assetserver.Options{
+			Assets:     assets,
+			Handler:    nil,
+			Middleware: nil,
+		},
 		Bind: []interface{}{
 			app,
 		},
