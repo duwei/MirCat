@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
+
+var CFG = Config{}
 
 // App struct
 type App struct {
@@ -21,6 +24,7 @@ func (a *App) startup(ctx context.Context) {
 	// Perform your setup here
 	// 在这里执行初始化设置
 	a.ctx = ctx
+	CFG.load()
 }
 
 // domReady is called after the front-end dom has been loaded
@@ -45,4 +49,13 @@ func (a *App) beforeClose(ctx context.Context) (prevent bool) {
 func (a *App) shutdown(ctx context.Context) {
 	// Perform your teardown here
 	// 在此处做一些资源释放的操作
+}
+
+func (a *App) GetConfig() Config {
+	return CFG.GetData()
+}
+
+func (a *App) SetConfig(val Config) {
+	CFG.SetData(&val)
+	runtime.EventsEmit(a.ctx, "config-saved", "OK")
 }
