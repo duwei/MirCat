@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
+	"fmt"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -58,4 +60,51 @@ func (a *App) GetConfig() Config {
 func (a *App) SetConfig(val Config) {
 	CFG.SetData(&val)
 	runtime.EventsEmit(a.ctx, "config-saved", "OK")
+}
+
+var clientArray []*TcpClient
+
+func (a *App) ClientTcpOpen() int {
+	tcpClient, err := NewTcpClient(CFG.Client.ServerIp + ":" + CFG.Client.ServerPort)
+	if err != nil {
+		runtime.EventsEmit(a.ctx, "client-tcp-error", []interface{}{-1, fmt.Sprintf("%v", err)})
+		fmt.Printf("Failed to connect: %v\n", err)
+		return -1
+	}
+	if clientArray == nil {
+		clientArray = []*TcpClient{}
+	}
+	clientArray = append(clientArray, tcpClient)
+	tcpClient.index = len(clientArray) - 1
+	tcpClient.ctx = a.ctx
+	runtime.EventsEmit(a.ctx, "client-tcp-info", []interface{}{tcpClient.index, "connection opened"})
+	return tcpClient.index
+}
+
+func (a *App) ClientTcpSend(index int, base64Data string) {
+	if clientArray == nil || index >= len(clientArray) || index < 0 {
+		runtime.EventsEmit(a.ctx, "client-tcp-error", []interface{}{index, "invalid client index"})
+		return
+	}
+	decodedBytes, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		runtime.EventsEmit(a.ctx, "client-tcp-error", []interface{}{index, base64Data + " decode failed"})
+		return
+	}
+	clientArray[index].Send(decodedBytes)
+}
+
+func (a *App) ClientTcpClose(index int) {
+	if clientArray == nil || index >= len(clientArray) || index < 0 {
+		runtime.EventsEmit(a.ctx, "client-tcp-error", []interface{}{index, "invalid client index"})
+		return
+	}
+	clientArray[index].Shutdown()
+}
+
+func (a *App) ClientTcpCloseAll() {
+	for _, client := range clientArray {
+		client.Shutdown()
+	}
+	clientArray = []*TcpClient{}
 }
