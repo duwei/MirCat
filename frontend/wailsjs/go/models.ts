@@ -1,4 +1,4 @@
-export namespace main {
+export namespace mircat {
 	
 	export class ClientConfig {
 	    ServerIp: string;

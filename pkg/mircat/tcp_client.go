@@ -1,16 +1,12 @@
-package main
+package mircat
 
 import (
-	"context"
 	"fmt"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"net"
 	"time"
 )
 
-const (
-	RECONNECT_INTERVAL = time.Second // 重新连接的时间间隔
-)
+const RECONNECT_INTERVAL = time.Second
 
 type TcpClient struct {
 	address    string      // 连接的地址
@@ -19,10 +15,10 @@ type TcpClient struct {
 	recvChan   chan []byte // 接收数据的通道
 	isShutdown bool        // 是否关闭
 	index      int
-	ctx        context.Context
+	app        *App
 }
 
-func NewTcpClient(address string) (*TcpClient, error) {
+func NewTcpClient(address string, app *App) (*TcpClient, error) {
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
 		return nil, err
@@ -34,6 +30,7 @@ func NewTcpClient(address string) (*TcpClient, error) {
 		recvChan:   make(chan []byte),
 		isShutdown: false,
 		index:      -1,
+		app:        app,
 	}
 	go c.startSending()
 	go c.startReceiving()
@@ -71,7 +68,7 @@ func (c *TcpClient) startReceiving() {
 		}
 		dst := make([]byte, n)
 		copy(dst, buffer[:n])
-		runtime.EventsEmit(c.ctx, "client-tcp-data", []interface{}{c.index, dst})
+		c.app.EventsEmit("client-tcp-data", c.index, dst)
 		fmt.Printf("Recv data: %v\n", buffer[:n])
 		//c.recvChan <- buffer[:n]
 	}
@@ -79,7 +76,7 @@ func (c *TcpClient) startReceiving() {
 
 func (c *TcpClient) Send(data []byte) {
 	if c.isShutdown {
-		runtime.EventsEmit(c.ctx, "client-tcp-error", []interface{}{c.index, "connection closed"})
+		c.app.EventsEmit("client-tcp-error", c.index, "connection closed")
 		return
 	}
 	c.sendChan <- data
@@ -103,7 +100,7 @@ func (c *TcpClient) Shutdown() {
 		c.conn.Close()
 		close(c.sendChan)
 		close(c.recvChan)
-		runtime.EventsEmit(c.ctx, "client-tcp-info", []interface{}{c.index, "connection closed"})
+		c.app.EventsEmit("client-tcp-info", c.index, "connection closed")
 	}
 }
 
@@ -117,10 +114,10 @@ func (c *TcpClient) reconnect() {
 			c.conn = conn
 			go c.startSending()
 			go c.startReceiving()
-			runtime.EventsEmit(c.ctx, "client-tcp-info", []interface{}{c.index, "connection reconnected"})
+			c.app.EventsEmit("client-tcp-info", c.index, "connection reconnected")
 			return
 		}
-		runtime.EventsEmit(c.ctx, "client-tcp-info", []interface{}{c.index, "trying to reconnect..."})
+		c.app.EventsEmit("client-tcp-info", c.index, "trying to reconnect...")
 		time.Sleep(RECONNECT_INTERVAL)
 	}
 }

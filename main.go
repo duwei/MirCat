@@ -10,6 +10,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
+	"mir-cat/pkg/mircat"
 )
 
 //go:embed frontend/dist
@@ -21,7 +22,9 @@ var icon []byte
 func main() {
 	// Create an instance of the app structure
 	// 创建一个App结构体实例
-	app := NewApp()
+	app := mircat.NewApp()
+	cfg := mircat.NewConfig()
+	connManager := mircat.NewConnManager(app, cfg)
 
 	// Create application with options
 	// 使用选项创建应用
@@ -42,10 +45,10 @@ func main() {
 		Menu:              nil,
 		Logger:            nil,
 		LogLevel:          logger.DEBUG,
-		OnStartup:         app.startup,
-		OnDomReady:        app.domReady,
-		OnBeforeClose:     app.beforeClose,
-		OnShutdown:        app.shutdown,
+		OnStartup:         app.Startup,
+		OnDomReady:        app.DomReady,
+		OnBeforeClose:     app.BeforeClose,
+		OnShutdown:        app.Shutdown,
 		WindowStartState:  options.Normal,
 		AssetServer: &assetserver.Options{
 			Assets:     assets,
@@ -53,7 +56,7 @@ func main() {
 			Middleware: nil,
 		},
 		Bind: []interface{}{
-			app,
+			cfg, connManager,
 		},
 		// Windows platform specific options
 		// Windows平台特定选项
