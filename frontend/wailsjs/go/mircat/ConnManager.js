@@ -17,3 +17,19 @@ export function ClientTcpOpen() {
 export function ClientTcpSend(arg1, arg2) {
   return window['go']['mircat']['ConnManager']['ClientTcpSend'](arg1, arg2);
 }
+
+export function ServerBroadcastMessage(arg1) {
+  return window['go']['mircat']['ConnManager']['ServerBroadcastMessage'](arg1);
+}
+
+export function ServerSendMessage(arg1, arg2) {
+  return window['go']['mircat']['ConnManager']['ServerSendMessage'](arg1, arg2);
+}
+
+export function ServerTcpStart() {
+  return window['go']['mircat']['ConnManager']['ServerTcpStart']();
+}
+
+export function ServerTcpStop() {
+  return window['go']['mircat']['ConnManager']['ServerTcpStop']();
+}

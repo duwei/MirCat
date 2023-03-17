@@ -8,6 +8,10 @@ MirCat is a network game protocol analysis tool. Its front-end is developed usin
 4. ClientTcpSend
 5. ClientTcpClose
 6. ClientTcpCloseAll
+7. ServerTcpStart
+8. ServerTcpStop
+9. ServerSendMessage
+10. ServerBroadcastMessage
 
 The events that have already been implemented are:
 
@@ -15,6 +19,9 @@ The events that have already been implemented are:
 - client-tcp-info
 - client-tcp-data
 - config-saved (deprecated)
+- server-tcp-error
+- server-tcp-info
+- server-tcp-data
 
 For detailed back-end documentation, godoc can be started on the local machine and accessed through the following link:
 

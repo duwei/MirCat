@@ -8,3 +8,11 @@ export function ClientTcpCloseAll():Promise<void>;
 export function ClientTcpOpen():Promise<number>;
 
 export function ClientTcpSend(arg1:number,arg2:string):Promise<void>;
+
+export function ServerBroadcastMessage(arg1:string):Promise<void>;
+
+export function ServerSendMessage(arg1:string,arg2:string):Promise<void>;
+
+export function ServerTcpStart():Promise<boolean>;
+
+export function ServerTcpStop():Promise<boolean>;

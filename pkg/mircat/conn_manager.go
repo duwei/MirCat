@@ -8,6 +8,7 @@ import (
 type ConnManager struct {
 	app     *App
 	clients []*TcpClient
+	server  *TCPServer
 	cfg     *Config
 }
 
@@ -15,6 +16,7 @@ func NewConnManager(app *App, cfg *Config) *ConnManager {
 	return &ConnManager{
 		app:     app,
 		clients: []*TcpClient{},
+		server:  NewTCPServer(app),
 		cfg:     cfg,
 	}
 }
@@ -72,4 +74,75 @@ func (c *ConnManager) ClientTcpCloseAll() {
 		client.Shutdown()
 	}
 	c.clients = []*TcpClient{}
+}
+
+// ServerTcpStart starts the TCP server for the connection manager.
+// It takes the server's address from the configuration file, starts the server, and returns a boolean indicating success or failure.
+// If the server fails to start, it emits a "server-tcp-error" event with the error message and returns false.
+// If the server starts successfully, it emits a "server-tcp-info" event with the server's address and returns true.
+func (c *ConnManager) ServerTcpStart() bool {
+	address := c.cfg.Server.TcpAddr + ":" + c.cfg.Server.TcpPort
+	err := c.server.Start(address)
+	if err != nil {
+		c.app.EventsEmit("server-tcp-error", "server", fmt.Sprintf("failed to listen on %s: %v", address, err))
+		fmt.Printf("Failed to start tcp server : %v\n", err)
+		return false
+	}
+	c.app.EventsEmit("server-tcp-info", "server", fmt.Sprintf("listening on %s", address))
+	return true
+}
+
+// ServerTcpStop stops the TCP server for the connection manager.
+// It checks if the server is running and stops it if it is, then emits a "server-tcp-info" event indicating the server has stopped and returns true.
+// If the server is not running, it returns false.
+func (c *ConnManager) ServerTcpStop() bool {
+	if c.server == nil {
+		return false
+	}
+	c.server.Stop()
+	c.app.EventsEmit("server-tcp-info", "server", "tcp server stopped")
+	return true
+}
+
+// ServerSendMessage sends a message to a specific client over TCP connection.
+//
+// Parameters:
+// - client: the identifier of the target client.
+// - base64Data: the message data encoded in base64 format.
+//
+// If the server is not started or the listener is not initialized, an error event will be emitted
+// through the app instance.
+// If the base64Data is not a valid base64-encoded string, an error event will also be emitted.
+func (c *ConnManager) ServerSendMessage(client string, base64Data string) {
+	if c.server == nil || c.server.listener == nil {
+		c.app.EventsEmit("server-tcp-error", client, "server not started")
+		return
+	}
+	decodedBytes, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		c.app.EventsEmit("server-tcp-error", client, base64Data+" decode failed")
+		return
+	}
+	c.server.SendMessage(client, decodedBytes)
+}
+
+// ServerBroadcastMessage broadcasts a message to all connected clients over TCP connection.
+//
+// Parameters:
+// - base64Data: the message data encoded in base64 format.
+//
+// If the server is not started or the listener is not initialized, an error event will be emitted
+// through the app instance.
+// If the base64Data is not a valid base64-encoded string, an error event will also be emitted.
+func (c *ConnManager) ServerBroadcastMessage(base64Data string) {
+	if c.server == nil || c.server.listener == nil {
+		c.app.EventsEmit("server-tcp-error", "server", "server not started")
+		return
+	}
+	decodedBytes, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		c.app.EventsEmit("server-tcp-error", "server", base64Data+" decode failed")
+		return
+	}
+	c.server.BroadcastMessage(decodedBytes)
 }
