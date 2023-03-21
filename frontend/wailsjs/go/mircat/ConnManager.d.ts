@@ -16,3 +16,15 @@ export function ServerSendMessage(arg1:string,arg2:string):Promise<void>;
 export function ServerTcpStart():Promise<boolean>;
 
 export function ServerTcpStop():Promise<boolean>;
+
+export function TransferBroadcastToClient(arg1:string):Promise<void>;
+
+export function TransferBroadcastToServer(arg1:string):Promise<void>;
+
+export function TransferSendToClient(arg1:string,arg2:string):Promise<void>;
+
+export function TransferSendToServer(arg1:string,arg2:string):Promise<void>;
+
+export function TransferTcpStart():Promise<boolean>;
+
+export function TransferTcpStop():Promise<boolean>;

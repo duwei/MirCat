@@ -63,10 +63,9 @@ func (s *TCPServer) Start(address string) error {
 
 func (s *TCPServer) Stop() {
 	if s.listener != nil {
-		s.shutdown <- true
-
 		s.listener.Close()
 		s.listener = nil
+		s.shutdown <- true
 	}
 }
 
@@ -107,7 +106,7 @@ func (s *TCPServer) handleEvents() {
 			}
 			s.clients = make(map[string]net.Conn)
 			s.mutex.Unlock()
-			break
+			return
 		case conn := <-s.addClient:
 			if s.listener == nil {
 				conn.Close()

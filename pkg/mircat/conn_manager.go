@@ -6,18 +6,20 @@ import (
 )
 
 type ConnManager struct {
-	app     *App
-	clients []*TcpClient
-	server  *TCPServer
-	cfg     *Config
+	app      *App
+	clients  []*TcpClient
+	server   *TCPServer
+	transfer *TCPTransfer
+	cfg      *Config
 }
 
 func NewConnManager(app *App, cfg *Config) *ConnManager {
 	return &ConnManager{
-		app:     app,
-		clients: []*TcpClient{},
-		server:  NewTCPServer(app),
-		cfg:     cfg,
+		app:      app,
+		clients:  []*TcpClient{},
+		server:   NewTCPServer(app),
+		transfer: NewTCPTransfer(app),
+		cfg:      cfg,
 	}
 }
 
@@ -145,4 +147,113 @@ func (c *ConnManager) ServerBroadcastMessage(base64Data string) {
 		return
 	}
 	c.server.BroadcastMessage(decodedBytes)
+}
+
+// TransferTcpStart starts the TCP transfer between the source and destination addresses specified in the configuration file of the connection manager.
+// It returns true if the transfer was successfully started, otherwise it returns false. It emits an event with the message "transfer-tcp-info" if the server is successfully listening on the source address.
+// It emits an event with the message "transfer-tcp-error" if there is an error in starting the transfer, along with the error message.
+//
+// Parameters:
+// - srcAddress: a string that represents the source IP address and port for the TCP transfer
+// - dstAddress: a string that represents the destination IP address and port for the TCP transfer
+func (c *ConnManager) TransferTcpStart() bool {
+	srcAddress := c.cfg.Transfer.SrcAddr + ":" + c.cfg.Transfer.SrcPort
+	dstAddress := c.cfg.Transfer.DstAddr + ":" + c.cfg.Transfer.DstPort
+	err := c.transfer.Start(srcAddress, dstAddress)
+	if err != nil {
+		c.app.EventsEmit("transfer-tcp-error", "server", fmt.Sprintf("failed to listen on %s: %v", srcAddress, err))
+		fmt.Printf("Failed to start transfer server : %v\n", err)
+		return false
+	}
+	c.app.EventsEmit("transfer-tcp-info", "server", fmt.Sprintf("listening on %s", srcAddress))
+	return true
+}
+
+// TransferTcpStop stops the transfer TCP server if it is currently running.
+// It returns a boolean indicating whether the server was stopped successfully or not.
+func (c *ConnManager) TransferTcpStop() bool {
+	if c.transfer == nil {
+		return false
+	}
+	c.transfer.Stop()
+	c.app.EventsEmit("transfer-tcp-info", "server", "transfer server stopped")
+	return true
+}
+
+// TransferSendToServer transfers base64 encoded data to the server via TCP connection.
+// It first checks if the transfer server is started and emits an event with an error message if not.
+// It then decodes the base64 data and sends it to the server using the transfer object.
+// If the base64 decoding fails, it emits an event with an error message.
+//
+// Parameters:
+// - client: a string representing the ID of the client sending the data
+// - base64Data: a string representing the base64 encoded data to be sent to the server
+func (c *ConnManager) TransferSendToServer(client string, base64Data string) {
+	if c.transfer == nil || c.transfer.listener == nil {
+		c.app.EventsEmit("transfer-tcp-error", client, "transfer server not started")
+		return
+	}
+	decodedBytes, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		c.app.EventsEmit("transfer-tcp-error", client, base64Data+" decode failed")
+		return
+	}
+	c.transfer.SendToServer(client, decodedBytes)
+}
+
+// TransferSendToClient transfers the decoded data to a specific client via a transfer server.
+// It first checks if the transfer server is running and if not, emits a "transfer-tcp-error" event and returns.
+// If the transfer server is running, it decodes the base64 data and sends it to the specified client using the transfer server.
+// Parameters:
+// - client: a string representing the identifier of the client that will receive the data.
+// - base64Data: a string representing the data to be transferred, encoded in base64 format.
+func (c *ConnManager) TransferSendToClient(client string, base64Data string) {
+	if c.transfer == nil || c.transfer.listener == nil {
+		c.app.EventsEmit("transfer-tcp-error", client, "transfer server not started")
+		return
+	}
+	decodedBytes, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		c.app.EventsEmit("transfer-tcp-error", client, base64Data+" decode failed")
+		return
+	}
+	c.transfer.SendToClient(client, decodedBytes)
+}
+
+// TransferBroadcastToServer transfers a base64 encoded string to the server using the connection manager's transfer object.
+// If the transfer object or its listener is not available, it emits a 'transfer-tcp-error' event with the error message and returns.
+// If decoding of the base64 encoded string fails, it emits a 'transfer-tcp-error' event with the error message and returns.
+// Otherwise, it decodes the base64 string into bytes and broadcasts it to the server via the transfer object.
+//
+// Parameters:
+// - base64Data: A base64 encoded string to be transferred to the server.
+func (c *ConnManager) TransferBroadcastToServer(base64Data string) {
+	if c.transfer == nil || c.transfer.listener == nil {
+		c.app.EventsEmit("transfer-tcp-error", "server", "transfer server not started")
+		return
+	}
+	decodedBytes, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		c.app.EventsEmit("transfer-tcp-error", "server", base64Data+" decode failed")
+		return
+	}
+	c.transfer.BroadcastToServer(decodedBytes)
+}
+
+// TransferBroadcastToClient transfers a base64 encoded string to the connected clients.
+// If the server or listener is not started, a "transfer-tcp-error" event will be emitted with the corresponding error message.
+// If the base64 decoding fails, a "transfer-tcp-error" event will be emitted with the corresponding error message.
+// Parameters:
+// - base64Data: the base64 encoded string to be transferred to the clients.
+func (c *ConnManager) TransferBroadcastToClient(base64Data string) {
+	if c.server == nil || c.server.listener == nil {
+		c.app.EventsEmit("transfer-tcp-error", "server", "transfer server not started")
+		return
+	}
+	decodedBytes, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		c.app.EventsEmit("transfer-tcp-error", "server", base64Data+" decode failed")
+		return
+	}
+	c.transfer.BroadcastToClient(decodedBytes)
 }

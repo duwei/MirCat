@@ -63,6 +63,7 @@ func (c *TcpClient) startReceiving() {
 			if c.isShutdown {
 				return
 			}
+			c.app.EventsEmit("client-tcp-error", c.index, fmt.Sprintf("connection closed: %v", err))
 			c.reconnect()
 			return
 		}

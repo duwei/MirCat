@@ -33,3 +33,27 @@ export function ServerTcpStart() {
 export function ServerTcpStop() {
   return window['go']['mircat']['ConnManager']['ServerTcpStop']();
 }
+
+export function TransferBroadcastToClient(arg1) {
+  return window['go']['mircat']['ConnManager']['TransferBroadcastToClient'](arg1);
+}
+
+export function TransferBroadcastToServer(arg1) {
+  return window['go']['mircat']['ConnManager']['TransferBroadcastToServer'](arg1);
+}
+
+export function TransferSendToClient(arg1, arg2) {
+  return window['go']['mircat']['ConnManager']['TransferSendToClient'](arg1, arg2);
+}
+
+export function TransferSendToServer(arg1, arg2) {
+  return window['go']['mircat']['ConnManager']['TransferSendToServer'](arg1, arg2);
+}
+
+export function TransferTcpStart() {
+  return window['go']['mircat']['ConnManager']['TransferTcpStart']();
+}
+
+export function TransferTcpStop() {
+  return window['go']['mircat']['ConnManager']['TransferTcpStop']();
+}
