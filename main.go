@@ -4,7 +4,9 @@ import (
 	"embed"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"log"
+	"net/http"
 
+	_ "github.com/mkevac/debugcharts"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/logger"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -20,6 +22,9 @@ var assets embed.FS
 var icon []byte
 
 func main() {
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 	// Create an instance of the app structure
 	// 创建一个App结构体实例
 	app := mircat.NewApp()

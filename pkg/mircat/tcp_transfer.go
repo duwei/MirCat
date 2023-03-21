@@ -194,8 +194,13 @@ func (s *TCPTransfer) handleEvents() {
 			go s.handleClientConnection(clientConn)
 			go s.handleServerConnection(clientConn, serverConn)
 		case conn := <-s.removeClient:
+			clientKey := conn.RemoteAddr().String()
 			s.mutex.Lock()
-			delete(s.clients, conn.RemoteAddr().String())
+			transferConn, ok := s.clients[clientKey]
+			delete(s.clients, clientKey)
+			if ok {
+				transferConn.serverConn.Close()
+			}
 			s.mutex.Unlock()
 		case message := <-s.broadcastClient:
 			s.mutex.RLock()
